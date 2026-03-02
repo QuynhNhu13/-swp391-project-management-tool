@@ -15,6 +15,12 @@ public class Group {
     @Column(nullable = false, unique = true)
     private String groupName;
 
+    @Column(name = "project_key", unique = true)
+    private String projectKey;
+
+    @Column(name = "project_id")
+    private String projectId;
+
     @ManyToOne
     @JoinColumn(name = "lecturer_id")
     private Lecturer lecturer;
@@ -29,6 +35,9 @@ public class Group {
             joinColumns = @JoinColumn(name = "group_id"),
             inverseJoinColumns = @JoinColumn(name = "user_id")
     )
+
+
+
     private List<User> members = new ArrayList<>();
 
     public Group() {
@@ -82,5 +91,21 @@ public class Group {
 
     public void removeMember(User user) {
         this.members.remove(user);
+    }
+
+    public String getProjectKey() {
+        return projectKey;
+    }
+
+    public void setProjectKey(String projectKey) {
+        this.projectKey = projectKey;
+    }
+
+    public String getProjectId() {
+        return projectId;
+    }
+
+    public void setProjectId(String projectId) {
+        this.projectId = projectId;
     }
 }
