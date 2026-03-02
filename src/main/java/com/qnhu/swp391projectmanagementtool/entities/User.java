@@ -20,6 +20,8 @@ public class User {
     private String username;
     private String email;
     private String role;
+    private Integer yob;
+    private String phoneNumber;
 
     public User() {
     }
@@ -54,6 +56,23 @@ public class User {
 
     public void setRole(String role) {
         this.role = role;
+    }
+
+
+    public Integer getYob() {
+        return yob;
+    }
+
+    public void setYob(Integer yob) {
+        this.yob = yob;
+    }
+
+    public String getPhoneNumber() {
+        return phoneNumber;
+    }
+
+    public void setPhoneNumber(String phoneNumber) {
+        this.phoneNumber = phoneNumber;
     }
 
     public void login() {
