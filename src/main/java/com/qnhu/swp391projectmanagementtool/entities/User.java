@@ -1,12 +1,7 @@
 package com.qnhu.swp391projectmanagementtool.entities;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Inheritance;
-import jakarta.persistence.InheritanceType;
-import jakarta.persistence.Table;
+import com.qnhu.swp391projectmanagementtool.enums.Role;
+import jakarta.persistence.*;
 
 @Entity
 @Table(name = "users")
@@ -19,7 +14,8 @@ public class User {
 
     private String username;
     private String email;
-    private String role;
+    @Enumerated(EnumType.STRING)
+    private Role role;
     private Integer yob;
     private String phoneNumber;
 
@@ -50,11 +46,10 @@ public class User {
         this.email = email;
     }
 
-    public String getRole() {
+    public Role getRole() {
         return role;
     }
-
-    public void setRole(String role) {
+    public void setRole(Role role) {
         this.role = role;
     }
 

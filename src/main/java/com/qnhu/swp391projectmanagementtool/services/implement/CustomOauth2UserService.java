@@ -1,7 +1,9 @@
 package com.qnhu.swp391projectmanagementtool.services.implement;
 
 import com.qnhu.swp391projectmanagementtool.entities.User;
+import com.qnhu.swp391projectmanagementtool.enums.Role;
 import com.qnhu.swp391projectmanagementtool.repositories.UserRepository;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserService;
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest;
 import org.springframework.security.oauth2.core.user.OAuth2User;
@@ -13,6 +15,12 @@ import java.util.Map;
 public class CustomOauth2UserService extends DefaultOAuth2UserService {
 
     private final UserRepository userRepository;
+
+    @Value("${app.security.admin-email}")
+    private String adminEmail;
+
+    @Value("${app.security.lecturer-emails}")
+    private String lecturerEmail;
 
     public CustomOauth2UserService(UserRepository userRepository) {
         this.userRepository = userRepository;
@@ -26,46 +34,37 @@ public class CustomOauth2UserService extends DefaultOAuth2UserService {
         String email = (String) attributes.get("email");
         String name = (String) attributes.getOrDefault("name", email);
 
-        // create or update local User
         User user = userRepository.findByEmail(email).orElseGet(User::new);
         user.setEmail(email);
         user.setUsername(name);
 
-        // determine role according to your rules
-        String role = determineRoleByEmail(email);
+        Role role = determineRoleByEmail(email);
         user.setRole(role);
 
         userRepository.save(user);
         return oauth2User;
     }
 
-    private String determineRoleByEmail(String email) {
-        if (email == null) return "ROLE_MEMBER";
 
-        // admin fixed
-        if ("wynnhu1311@gmail.com".equalsIgnoreCase(email)) {
-            return "ROLE_ADMIN";
+    private Role determineRoleByEmail(String email) {
+        if (email == null) return Role.ROLE_MEMBER;
+
+        if (email.equalsIgnoreCase(adminEmail)) {
+            return Role.ROLE_ADMIN;
         }
 
-        // lecturer by domain
+        if (email.equalsIgnoreCase(lecturerEmail)) {
+            return Role.ROLE_LECTURER;
+        }
+
         if (email.toLowerCase().endsWith("@fe.edu.vn")) {
-            return "ROLE_LECTURER";
+            return Role.ROLE_LECTURER;
         }
 
-        // fallback lecturer fixed email (mình giữ theo bạn)
-        if ("nguyennuquynhnhu13@gmail.com".equalsIgnoreCase(email) ||
-                "nguyennuquynhnhu13@gmail.".equalsIgnoreCase(email)) {
-            return "ROLE_LECTURER";
-        }
-
-        // student: simple mapping: @fpt.edu.vn -> team leader, @gmail.com -> member
         if (email.toLowerCase().endsWith("@fpt.edu.vn")) {
-            return "ROLE_TEAM_LEADER";
-        }
-        if (email.toLowerCase().endsWith("@gmail.com")) {
-            return "ROLE_MEMBER";
+            return Role.ROLE_MEMBER;
         }
 
-        return "ROLE_MEMBER";
+        return Role.ROLE_MEMBER;
     }
 }

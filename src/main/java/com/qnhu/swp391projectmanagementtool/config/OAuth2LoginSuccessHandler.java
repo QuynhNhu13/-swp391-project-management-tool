@@ -2,6 +2,7 @@ package com.qnhu.swp391projectmanagementtool.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.qnhu.swp391projectmanagementtool.entities.User;
+import com.qnhu.swp391projectmanagementtool.enums.Role;
 import com.qnhu.swp391projectmanagementtool.repositories.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -14,7 +15,6 @@ import org.springframework.stereotype.Component;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-
 import java.io.IOException;
 import java.util.*;
 
@@ -47,8 +47,7 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
         String email = null;
         String name = null;
 
-        if (principal instanceof DefaultOAuth2User) {
-            DefaultOAuth2User oauthUser = (DefaultOAuth2User) principal;
+        if (principal instanceof DefaultOAuth2User oauthUser) {
             Object emailObj = oauthUser.getAttributes().get("email");
             Object nameObj = oauthUser.getAttributes().get("name");
             if (emailObj != null) email = emailObj.toString();
@@ -81,18 +80,18 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
             user.setUsername(name != null && !name.isBlank() ? name : email);
 
             if (email.equalsIgnoreCase(adminEmail)) {
-                user.setRole("ROLE_ADMIN");
+                user.setRole(Role.ROLE_ADMIN);
             } else if (lecturerEmails.contains(email)) {
-                user.setRole("ROLE_LECTURER");
+                user.setRole(Role.ROLE_LECTURER);
             } else {
-                user.setRole("ROLE_MEMBER");
+                user.setRole(Role.ROLE_MEMBER);
             }
 
             userRepository.save(user);
-            logger.info("Created new user {} with role {}", email, user.getRole());
+            logger.info("Created new user {} with role {}", email, user.getRole().name());
         }
 
-        String role = user.getRole();
+        String role = (user.getRole() != null) ? user.getRole().name() : Role.ROLE_MEMBER.name();
         String token = jwtUtil.generateToken(email, role);
 
         Map<String, Object> body = new HashMap<>();
