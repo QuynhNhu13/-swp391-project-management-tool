@@ -1,13 +1,7 @@
 package com.qnhu.swp391projectmanagementtool.entities;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.JoinTable;
-import jakarta.persistence.ManyToMany;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity
@@ -18,13 +12,24 @@ public class Group {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int groupId;
 
+    @Column(nullable = false, unique = true)
     private String groupName;
-    private int lecturerId;
-    private int teamLeaderId;
+
+    @ManyToOne
+    @JoinColumn(name = "lecturer_id")
+    private Lecturer lecturer;
+
+    @ManyToOne
+    @JoinColumn(name = "leader_id")
+    private User teamLeader;
 
     @ManyToMany
-    @JoinTable(name = "group_members", joinColumns = @JoinColumn(name = "group_id"), inverseJoinColumns = @JoinColumn(name = "user_id"))
-    private List<User> members;
+    @JoinTable(
+            name = "group_members",
+            joinColumns = @JoinColumn(name = "group_id"),
+            inverseJoinColumns = @JoinColumn(name = "user_id")
+    )
+    private List<User> members = new ArrayList<>();
 
     public Group() {
     }
@@ -45,20 +50,20 @@ public class Group {
         this.groupName = groupName;
     }
 
-    public int getLecturerId() {
-        return lecturerId;
+    public Lecturer getLecturer() {
+        return lecturer;
     }
 
-    public void setLecturerId(int lecturerId) {
-        this.lecturerId = lecturerId;
+    public void setLecturer(Lecturer lecturer) {
+        this.lecturer = lecturer;
     }
 
-    public int getTeamLeaderId() {
-        return teamLeaderId;
+    public User getTeamLeader() {
+        return teamLeader;
     }
 
-    public void setTeamLeaderId(int teamLeaderId) {
-        this.teamLeaderId = teamLeaderId;
+    public void setTeamLeader(User teamLeader) {
+        this.teamLeader = teamLeader;
     }
 
     public List<User> getMembers() {
@@ -69,9 +74,13 @@ public class Group {
         this.members = members;
     }
 
-    public void addMember() {
+    public void addMember(User user) {
+        if (!this.members.contains(user)) {
+            this.members.add(user);
+        }
     }
 
-    public void removeMember() {
+    public void removeMember(User user) {
+        this.members.remove(user);
     }
 }
