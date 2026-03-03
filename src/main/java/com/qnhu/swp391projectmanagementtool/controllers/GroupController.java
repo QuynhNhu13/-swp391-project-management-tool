@@ -3,8 +3,11 @@ package com.qnhu.swp391projectmanagementtool.controllers;
 import com.qnhu.swp391projectmanagementtool.dtos.CreateGroupRequest;
 import com.qnhu.swp391projectmanagementtool.dtos.GroupResponse;
 import com.qnhu.swp391projectmanagementtool.entities.User;
+import com.qnhu.swp391projectmanagementtool.repositories.UserRepository;
 import com.qnhu.swp391projectmanagementtool.services.interfaces.IGroupService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
@@ -16,39 +19,21 @@ import java.util.List;
 public class GroupController {
 
     private final IGroupService groupService;
-
-    // ==============================
-    // CREATE GROUP
-    // ==============================
+    private final UserRepository userRepository;
 
     @PostMapping
     public GroupResponse createGroup(@RequestBody CreateGroupRequest request) {
         return groupService.createGroup(request.getGroupName());
     }
 
-    // ==============================
-    // ASSIGN LECTURER
-    // ==============================
-
-    @PutMapping("/{groupId}/lecturer/{lecturerId}")
-    public void assignLecturer(@PathVariable int groupId,
-                               @PathVariable int lecturerId) {
-        groupService.assignLecturer(groupId, lecturerId);
-    }
-
-    // ==============================
-    // ADD MEMBER
-    // ==============================
-
     @PutMapping("/{groupId}/member/{userId}")
-    public void addMember(@PathVariable int groupId,
-                          @PathVariable int userId) {
-        groupService.addMember(groupId, userId);
-    }
+    public ResponseEntity<String> addMember(
+            @PathVariable int groupId,
+            @PathVariable int userId) {
 
-    // ==============================
-    // ASSIGN LEADER
-    // ==============================
+        groupService.addMember(groupId, userId);
+        return ResponseEntity.ok("User processed successfully");
+    }
 
     @PutMapping("/{groupId}/leader/{leaderId}")
     public void assignLeader(@PathVariable int groupId,
@@ -56,42 +41,43 @@ public class GroupController {
         groupService.assignLeader(groupId, leaderId);
     }
 
-    // ==============================
-    // GET ALL GROUPS
-    // ==============================
-
     @GetMapping
     public List<GroupResponse> getAllGroups() {
         return groupService.getAllGroups();
     }
-
-    // ==============================
-    // GET GROUP BY ID
-    // ==============================
 
     @GetMapping("/{groupId}")
     public GroupResponse getGroup(@PathVariable int groupId) {
         return groupService.getGroupById(groupId);
     }
 
-    // ==============================
-    // DELETE GROUP
-    // ==============================
-
     @DeleteMapping("/{groupId}")
     public void deleteGroup(@PathVariable int groupId) {
         groupService.deleteGroup(groupId);
     }
 
-    // ==============================
-    // GET GROUPS BY CURRENT USER
-    // ==============================
-
     @GetMapping("/my-groups")
-    public List<GroupResponse> getMyGroups(Authentication authentication) {
+    public ResponseEntity<List<GroupResponse>> getMyGroups(Authentication authentication) {
 
-        User currentUser = (User) authentication.getPrincipal();
+        String email = authentication.getName();
 
-        return groupService.getGroupsByCurrentUser(currentUser);
+        User currentUser = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        return ResponseEntity.ok(
+                groupService.getGroupsByCurrentUser(currentUser)
+        );
+    }
+    @PreAuthorize("hasRole('ADMIN')")
+    @DeleteMapping("/{groupId}/member/{userId}")
+    public void removeMember(@PathVariable int groupId,
+                             @PathVariable int userId) {
+        groupService.removeMember(groupId, userId);
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @DeleteMapping("/{groupId}/lecturer")
+    public void removeLecturer(@PathVariable int groupId) {
+        groupService.removeLecturer(groupId);
     }
 }

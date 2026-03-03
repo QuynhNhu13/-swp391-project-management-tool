@@ -11,11 +11,7 @@ public interface GroupRepository extends JpaRepository<Group, Integer> {
 
     boolean existsByGroupName(String groupName);
 
-    // ==============================
-    // THÊM 3 METHOD NÀY
-    // ==============================
-
-    List<Group> findByLecturer(Lecturer lecturer);
+    List<Group> findByLecturer(User lecturer);
 
     List<Group> findByTeamLeader(User teamLeader);
 

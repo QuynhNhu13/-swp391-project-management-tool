@@ -1,27 +1,28 @@
 package com.qnhu.swp391projectmanagementtool.services.implement;
 
 import com.qnhu.swp391projectmanagementtool.dtos.GroupResponse;
-import com.qnhu.swp391projectmanagementtool.entities.*;
+import com.qnhu.swp391projectmanagementtool.entities.Group;
+import com.qnhu.swp391projectmanagementtool.entities.User;
 import com.qnhu.swp391projectmanagementtool.enums.Role;
 import com.qnhu.swp391projectmanagementtool.mappers.GroupMapper;
 import com.qnhu.swp391projectmanagementtool.repositories.GroupRepository;
 import com.qnhu.swp391projectmanagementtool.repositories.UserRepository;
 import com.qnhu.swp391projectmanagementtool.services.interfaces.IGroupService;
+import com.qnhu.swp391projectmanagementtool.services.interfaces.JiraService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
 @Service
 @RequiredArgsConstructor
+@Transactional
 public class GroupServiceImpl implements IGroupService {
 
     private final GroupRepository groupRepository;
     private final UserRepository userRepository;
-
-    // ==============================
-    // CREATE GROUP
-    // ==============================
+    private final JiraService jiraService;
 
     @Override
     public GroupResponse createGroup(String groupName) {
@@ -33,35 +34,8 @@ public class GroupServiceImpl implements IGroupService {
         Group group = new Group();
         group.setGroupName(groupName);
 
-        Group saved = groupRepository.save(group);
-
-        return GroupMapper.toResponse(saved);
+        return GroupMapper.toResponse(groupRepository.save(group));
     }
-
-    // ==============================
-    // ASSIGN LECTURER
-    // ==============================
-
-    @Override
-    public void assignLecturer(int groupId, int lecturerId) {
-
-        Group group = groupRepository.findById(groupId)
-                .orElseThrow(() -> new RuntimeException("Group not found"));
-
-        User user = userRepository.findById(lecturerId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
-
-        if (user.getRole() != Role.ROLE_LECTURER) {
-            throw new RuntimeException("User is not Lecturer");
-        }
-
-        group.setLecturer((Lecturer) user);
-        groupRepository.save(group);
-    }
-
-    // ==============================
-    // ADD MEMBER
-    // ==============================
 
     @Override
     public void addMember(int groupId, int userId) {
@@ -76,17 +50,27 @@ public class GroupServiceImpl implements IGroupService {
             throw new RuntimeException("Admin cannot join group");
         }
 
-        if (group.getMembers().contains(user)) {
-            throw new RuntimeException("User already in group");
+        if (user.getRole() == Role.ROLE_LECTURER) {
+            group.setLecturer(user);
+        } else {
+            if (group.getMembers().contains(user)) {
+                throw new RuntimeException("User already in group");
+            }
+            group.addMember(user);
         }
 
-        group.addMember(user);
         groupRepository.save(group);
-    }
 
-    // ==============================
-    // ASSIGN LEADER
-    // ==============================
+        if (group.getProjectKey() != null && !group.getProjectKey().isBlank()) {
+            try {
+                jiraService.syncUserToJiraProject(group, user);
+                user.setJiraSynced(true);
+            } catch (Exception e) {
+                user.setJiraSynced(false);
+            }
+            userRepository.save(user);
+        }
+    }
 
     @Override
     public void assignLeader(int groupId, int leaderId) {
@@ -94,24 +78,21 @@ public class GroupServiceImpl implements IGroupService {
         Group group = groupRepository.findById(groupId)
                 .orElseThrow(() -> new RuntimeException("Group not found"));
 
-        User leader = userRepository.findById(leaderId)
+        User user = userRepository.findById(leaderId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        if (leader.getRole() != Role.ROLE_LEADER) {
-            throw new RuntimeException("User is not Leader");
+
+        if (!group.getMembers().contains(user)) {
+            throw new RuntimeException("User must be a member of this group");
         }
 
-        if (!group.getMembers().contains(leader)) {
-            throw new RuntimeException("Leader must be member of group");
-        }
-
-        group.setTeamLeader(leader);
+        group.setTeamLeader(user);
         groupRepository.save(group);
-    }
 
-    // ==============================
-    // GET ALL GROUPS
-    // ==============================
+        if (group.getProjectKey() != null && !group.getProjectKey().isBlank()) {
+            jiraService.syncUserToJiraProject(group, user);
+        }
+    }
 
     @Override
     public List<GroupResponse> getAllGroups() {
@@ -120,10 +101,6 @@ public class GroupServiceImpl implements IGroupService {
                 .map(GroupMapper::toResponse)
                 .toList();
     }
-
-    // ==============================
-    // GET GROUP BY ID
-    // ==============================
 
     @Override
     public GroupResponse getGroupById(int groupId) {
@@ -134,18 +111,10 @@ public class GroupServiceImpl implements IGroupService {
         return GroupMapper.toResponse(group);
     }
 
-    // ==============================
-    // DELETE GROUP
-    // ==============================
-
     @Override
     public void deleteGroup(int groupId) {
         groupRepository.deleteById(groupId);
     }
-
-    // ==============================
-    // GET GROUPS BY CURRENT USER ROLE
-    // ==============================
 
     @Override
     public List<GroupResponse> getGroupsByCurrentUser(User currentUser) {
@@ -159,11 +128,7 @@ public class GroupServiceImpl implements IGroupService {
                 break;
 
             case ROLE_LECTURER:
-                groups = groupRepository.findByLecturer((Lecturer) currentUser);
-                break;
-
-            case ROLE_LEADER:
-                groups = groupRepository.findByTeamLeader(currentUser);
+                groups = groupRepository.findByLecturer(currentUser);
                 break;
 
             case ROLE_MEMBER:
@@ -171,11 +136,42 @@ public class GroupServiceImpl implements IGroupService {
                 break;
 
             default:
-                throw new RuntimeException("Invalid role");
+                groups = groupRepository.findByMembersContaining(currentUser);
         }
 
         return groups.stream()
                 .map(GroupMapper::toResponse)
                 .toList();
+    }
+    @Override
+    public void removeMember(int groupId, int userId) {
+
+        Group group = groupRepository.findById(groupId)
+                .orElseThrow(() -> new RuntimeException("Group not found"));
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        if (!group.getMembers().contains(user)) {
+            throw new RuntimeException("User is not in this group");
+        }
+
+        if (group.getTeamLeader() != null &&
+                group.getTeamLeader().getUserId() == userId) {
+            group.setTeamLeader(null);
+        }
+
+        group.removeMember(user);
+        groupRepository.save(group);
+    }
+
+    @Override
+    public void removeLecturer(int groupId) {
+
+        Group group = groupRepository.findById(groupId)
+                .orElseThrow(() -> new RuntimeException("Group not found"));
+
+        group.setLecturer(null);
+        groupRepository.save(group);
     }
 }

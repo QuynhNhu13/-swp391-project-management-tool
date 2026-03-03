@@ -18,6 +18,10 @@ public class User {
     private Role role;
     private Integer yob;
     private String phoneNumber;
+    @Column(name = "jira_account_id")
+    private String jiraAccountId;
+    @Column(name = "jira_synced")
+    private Boolean jiraSynced = false;
 
     public User() {
     }
@@ -68,6 +72,17 @@ public class User {
 
     public void setPhoneNumber(String phoneNumber) {
         this.phoneNumber = phoneNumber;
+    }
+
+    public String getJiraAccountId() { return jiraAccountId; }
+    public void setJiraAccountId(String jiraAccountId) { this.jiraAccountId = jiraAccountId; }
+
+    public Boolean getJiraSynced() {
+        return jiraSynced;
+    }
+
+    public void setJiraSynced(Boolean jiraSynced) {
+        this.jiraSynced = jiraSynced;
     }
 
     public void login() {

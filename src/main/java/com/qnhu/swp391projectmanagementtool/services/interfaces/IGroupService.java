@@ -9,8 +9,6 @@ public interface IGroupService {
 
     GroupResponse createGroup(String groupName);
 
-    void assignLecturer(int groupId, int lecturerId);
-
     void addMember(int groupId, int userId);
 
     void assignLeader(int groupId, int leaderId);
@@ -22,4 +20,8 @@ public interface IGroupService {
     void deleteGroup(int groupId);
 
     List<GroupResponse> getGroupsByCurrentUser(User currentUser);
+
+    void removeMember(int groupId, int userId);
+
+    void removeLecturer(int groupId);
 }
