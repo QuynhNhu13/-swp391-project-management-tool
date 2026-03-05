@@ -57,8 +57,7 @@ public class JiraServiceImpl implements JiraService {
 
     @Override
     public void createProjectForGroup(int groupId, String projectKey, String projectName) {
-
-        Group group = groupRepository.findById(groupId)
+        Group group = groupRepository.findById(Integer.valueOf(groupId))
                 .orElseThrow(() -> new RuntimeException("Group not found"));
 
         if (group.getProjectKey() != null) {

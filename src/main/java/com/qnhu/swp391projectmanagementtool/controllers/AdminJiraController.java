@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class AdminJiraController {
 
-    private final JiraService jiraService;
+    public JiraService jiraService;
 
     @PostMapping("/{groupId}/jira-project")
     public String createJiraProject(@PathVariable int groupId,
